@@ -2,10 +2,8 @@ package fi.epassi.recruitment.book;
 
 import static java.sql.Types.VARCHAR;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import fi.epassi.recruitment.copy.CopyModel;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,6 +29,10 @@ public class BookModel {
     @Column(name = "id", updatable = false, nullable = false, columnDefinition = "VARCHAR(36)")
     @JdbcTypeCode(value = VARCHAR)
     private UUID isbn;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "id", referencedColumnName = "id")
+    CopyModel copy;
 
     @NotBlank
     private String title;
