@@ -36,6 +36,13 @@ public class CopyModel {
     @DecimalMin(value = "1", message = "Quantity must be more than 1")
     private Long copies;
 
-    @OneToOne(mappedBy = "copy")
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @MapsId
+    @JoinColumn(name = "id")
     private BookModel book;
+
+    public void setBook(BookModel book) {
+        this.book = book;
+        this.isbn = book.getIsbn();
+    }
 }

@@ -30,10 +30,6 @@ public class BookModel {
     @JdbcTypeCode(value = VARCHAR)
     private UUID isbn;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "id", referencedColumnName = "id")
-    CopyModel copy;
-
     @NotBlank
     private String title;
 
@@ -43,5 +39,4 @@ public class BookModel {
     @NotNull
     @DecimalMin(value = "0.00", message = "Book price must be higher than 0.00")
     private BigDecimal price;
-
 }
