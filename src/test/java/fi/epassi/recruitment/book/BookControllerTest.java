@@ -1,9 +1,7 @@
 package fi.epassi.recruitment.book;
 
 import static java.math.BigDecimal.TEN;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
@@ -26,6 +24,8 @@ class BookControllerTest extends BaseIntegrationTest {
     private static final String BASE_PATH_V1_BOOK = "/api/v1/books";
     private static final String AUTHOR = "author";
     private static final String TITLE = "title";
+    private static final String PAGE = "page";
+    private static final String SIZE = "size";
     private static final String BASE_PATH_V1_BOOK_BY_ISBN = BASE_PATH_V1_BOOK + "/{isbn}";
 
     private static final BookModel BOOK_HOBBIT = BookModel.builder()
@@ -91,6 +91,28 @@ class BookControllerTest extends BaseIntegrationTest {
         response.andExpect(status().is2xxSuccessful())
             .andExpect(jsonPath("$.response[0].author", is("J.R.R Tolkien")))
             .andExpect(jsonPath("$.response[0].title", is(notNullValue())));
+    }
+
+    @Test
+    @SneakyThrows
+    void shouldRespondWithPaginatedResponse() {
+        // Given
+        bookRepository.save(BOOK_HOBBIT);
+        bookRepository.save(BOOK_FELLOWSHIP);
+
+        // When
+        var requestUrl = getEndpointUrl(BASE_PATH_V1_BOOK + "/paginated");
+        var request = get(requestUrl)
+                .queryParam(AUTHOR, "J.R.R Tolkien")
+                .contentType(APPLICATION_JSON);
+        var response = mvc.perform(request);
+
+        // Then
+        response.andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.response.total_items", is(2)))
+                .andExpect(jsonPath("$.response.current_page", is(0)))
+                .andExpect(jsonPath("$.response.total_pages", is(1)))
+                .andExpect(jsonPath("$.response.books[*].title", containsInAnyOrder(BOOK_HOBBIT.getTitle(), BOOK_FELLOWSHIP.getTitle())));
     }
 
     @Test

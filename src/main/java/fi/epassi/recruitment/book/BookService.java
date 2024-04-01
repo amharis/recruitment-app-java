@@ -6,6 +6,8 @@ import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 public class BookService {
 
     private final BookRepository bookRepository;
+
+    public static final int PAGE_SIZE = 10;
 
     public UUID createBook(BookDto bookDto) {
         BookModel bookModel = toBookModel(bookDto);
@@ -43,7 +47,35 @@ public class BookService {
         return bookRepository.findAll().stream().map(BookService::toBookDto).toList();
     }
 
+    public BookApiPaginatedResponse getBooksWithPaging(String author, String title, int pageNumber, int pageSize) {
+        var pageRequest = PageRequest.of(pageNumber, pageSize);
+
+        if (StringUtils.isNotBlank(author) && StringUtils.isNotBlank(title)) {
+            final Page<BookModel> pageQueryResponse = bookRepository.findByAuthorAndTitle(author, title, pageRequest);
+            return toBookApiPaginatedResponse(pageQueryResponse);
+
+        } else if (StringUtils.isNotBlank(author) && StringUtils.isBlank(title)) {
+            final Page<BookModel> pageQueryResponse = bookRepository.findByAuthor(author, pageRequest);
+            return toBookApiPaginatedResponse(pageQueryResponse);
+
+        } else if (StringUtils.isNotBlank(title) && StringUtils.isBlank(author)) {
+            final Page<BookModel> pageQueryResponse = bookRepository.findByTitle(title, pageRequest);
+            return toBookApiPaginatedResponse(pageQueryResponse);
+        }
+
+        final Page<BookModel> pageQueryResponse = bookRepository.findAll(pageRequest);
+        return toBookApiPaginatedResponse(pageQueryResponse);
+    }
+
+    private static BookApiPaginatedResponse toBookApiPaginatedResponse(Page<BookModel> page) {
+        return BookApiPaginatedResponse.builder()
+                .books(page.getContent().stream().map(BookService::toBookDto).toList())
+                .currentPage(page.getNumber())
+                .totalItems(page.getTotalElements())
+                .totalPages(page.getTotalPages()).build();
+    }
     public UUID updateBook(BookDto bookDto) {
+
         if (bookRepository.findByIsbn(bookDto.getIsbn()).isPresent()) {
             var bookModel = toBookModel(bookDto);
             var savedBook = bookRepository.save(bookModel);
