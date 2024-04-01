@@ -5,6 +5,7 @@ import fi.epassi.recruitment.book.BookModel;
 import fi.epassi.recruitment.book.BookRepository;
 import fi.epassi.recruitment.book.BookService;
 import fi.epassi.recruitment.exception.BookNotFoundException;
+import fi.epassi.recruitment.exception.CopyRecordNotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -34,7 +35,36 @@ public class CopyService {
         return savedCopyRecord.getIsbn();
     }
 
-    private static CopyModel toCopyModel(CopyDto copyDto) {
+    public CopyDto getCopiesByIsbn(@NonNull UUID isbn) {
+        return copyRepository.findByIsbn(isbn)
+                .map(CopyService::toCopyDto)
+                .orElseThrow(() -> new CopyRecordNotFoundException(isbn.toString()));
+    }
+
+    public List<CopyDto> getCopyRecords(String author, String title) {
+        if (StringUtils.isNotBlank(author) && StringUtils.isNotBlank(title)) {
+            return copyRepository.findByAuthorAndTitle(author, title).stream().map(CopyService::toCopyDto).toList();
+        } else if (StringUtils.isNotBlank(author) && StringUtils.isBlank(title)) {
+            var list = copyRepository.findByAuthor(author).stream().map(CopyService::toCopyDto).toList();
+            return list;
+        } else if (StringUtils.isNotBlank(title) && StringUtils.isBlank(author)) {
+            return copyRepository.findByTitle(title).stream().map(CopyService::toCopyDto).toList();
+        }
+
+        return copyRepository.findAll().stream().map(CopyService::toCopyDto).toList();
+    }
+
+
+    public UUID updateCopyRecord(CopyDto copyDto) {
+        if (copyRepository.findByIsbn(copyDto.getIsbn()).isPresent()) {
+            var copyModel = toCopyModel(copyDto);
+            var savedRecord = copyRepository.save(copyModel);
+            return savedRecord.getIsbn();
+        }
+        throw new CopyRecordNotFoundException(copyDto.getIsbn().toString());
+    }
+
+    public static CopyModel toCopyModel(CopyDto copyDto) {
         return CopyModel.builder()
                 .isbn(copyDto.getIsbn())
                 .author(copyDto.getAuthor())
@@ -43,7 +73,7 @@ public class CopyService {
                 .build();
     }
 
-    private static CopyDto toCopyDto(CopyModel copyModel) {
+    public static CopyDto toCopyDto(CopyModel copyModel) {
         return CopyDto.builder()
                 .isbn(copyModel.getIsbn())
                 .author(copyModel.getAuthor())

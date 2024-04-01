@@ -13,6 +13,7 @@ import java.util.UUID;
 import static java.math.BigDecimal.TEN;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -20,7 +21,7 @@ public class CopyControllerTest extends BaseIntegrationTest {
     private static final String BASE_PATH_V1_COPIES = "/api/v1/copies";
     private static final String AUTHOR = "author";
     private static final String TITLE = "title";
-    private static final String BASE_PATH_V1_BOOK_BY_ISBN = BASE_PATH_V1_COPIES + "/{isbn}";
+    private static final String BASE_PATH_V1_COPIES_BY_ISBN = BASE_PATH_V1_COPIES + "/{isbn}";
 
     private static final BookModel BOOK_HOBBIT = BookModel.builder()
             .isbn(UUID.fromString("66737096-39ef-4a7c-aa4a-9fd018c14178"))
@@ -82,5 +83,51 @@ public class CopyControllerTest extends BaseIntegrationTest {
         response.andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.detail", containsStringIgnoringCase("No book found with ISBN")));
     }
+
+    @Test
+    @SneakyThrows
+    void testGetCopiesByIsbn() {
+        // Setup
+        var bookSaved = bookRepository.save(BOOK_HOBBIT);
+        var copiesRecord = CopyModel.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
+                .author(BOOK_HOBBIT.getAuthor()).copies(10l).book(bookSaved).build();
+
+        var savedCopiesRecord = copyRepository.save(copiesRecord);
+
+        // When
+        var requestUrl = getEndpointUrl(BASE_PATH_V1_COPIES_BY_ISBN);
+        var request = get(requestUrl, BOOK_HOBBIT.getIsbn().toString()).contentType(APPLICATION_JSON);
+        var response = mvc.perform(request);
+
+        // Then
+        response.andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.response.isbn", is(BOOK_HOBBIT.getIsbn().toString())));
+    }
+
+    @Test
+    @SneakyThrows
+    void testGetCopiesByAuthor() {
+        // Setup
+        var bookSaved1 = bookRepository.save(BOOK_HOBBIT);
+        var copiesRecord1 = CopyModel.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
+                .author(BOOK_HOBBIT.getAuthor()).copies(10l).book(bookSaved1).build();
+        var savedCopiesRecord1 = copyRepository.save(copiesRecord1);
+
+        var bookSaved2 = bookRepository.save(BOOK_FELLOWSHIP);
+        var copiesRecord2 = CopyModel.builder().isbn(BOOK_FELLOWSHIP.getIsbn()).title(BOOK_FELLOWSHIP.getTitle())
+                .author(BOOK_FELLOWSHIP.getAuthor()).copies(20l).book(bookSaved2).build();
+        var savedCopiesRecord2 = copyRepository.save(copiesRecord2);
+
+        // When
+        var requestUrl = getEndpointUrl(BASE_PATH_V1_COPIES);
+        var request = get(requestUrl).queryParam(AUTHOR, BOOK_HOBBIT.getAuthor()).contentType(APPLICATION_JSON);
+        var response = mvc.perform(request);
+
+        // Then
+        response.andExpect(status().is2xxSuccessful())
+                .andExpect(jsonPath("$.response.[*].title", containsInAnyOrder(BOOK_HOBBIT.getTitle(), BOOK_FELLOWSHIP.getTitle())));
+
+    }
+
 
 }
