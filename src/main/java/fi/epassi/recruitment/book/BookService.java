@@ -6,9 +6,13 @@ import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.support.SimpleCacheManager;
 
 @Service
 @RequiredArgsConstructor
@@ -17,13 +21,14 @@ public class BookService {
     private final BookRepository bookRepository;
 
     public static final int PAGE_SIZE = 10;
-
+    @CachePut("books")
     public UUID createBook(BookDto bookDto) {
         BookModel bookModel = toBookModel(bookDto);
         var savedBook = bookRepository.save(bookModel);
         return savedBook.getIsbn();
     }
 
+    @CacheEvict("books")
     public void deleteBookWithIsbn(@NonNull UUID isbn) {
         bookRepository.deleteById(isbn);
     }
@@ -35,6 +40,7 @@ public class BookService {
     }
 
 
+    @Cacheable("books")
     public List<BookDto> getBooks(String author, String title) {
         if (StringUtils.isNotBlank(author) && StringUtils.isNotBlank(title)) {
             return bookRepository.findByAuthorAndTitle(author, title).stream().map(BookService::toBookDto).toList();
@@ -74,6 +80,7 @@ public class BookService {
                 .totalItems(page.getTotalElements())
                 .totalPages(page.getTotalPages()).build();
     }
+    @CachePut("books")
     public UUID updateBook(BookDto bookDto) {
 
         if (bookRepository.findByIsbn(bookDto.getIsbn()).isPresent()) {

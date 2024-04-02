@@ -2,7 +2,6 @@ package fi.epassi.recruitment.book;
 
 import static java.sql.Types.VARCHAR;
 
-import fi.epassi.recruitment.copy.CopyModel;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -22,7 +21,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-@Table(name = "books")
+@Table( name = "books",
+        indexes = { @Index(columnList = "isbn"), @Index(columnList = "title"), @Index(columnList = "author") }
+)
 public class BookModel {
 
     @Id
