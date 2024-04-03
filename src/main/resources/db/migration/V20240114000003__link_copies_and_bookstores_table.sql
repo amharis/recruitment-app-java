@@ -1,4 +1,2 @@
 ALTER TABLE `copies`
-(
-    ADD bookstore_code char(8) not null DEFAULT '';
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ADD store_code char(15) CONSTRAINT c1 NOT NULL
