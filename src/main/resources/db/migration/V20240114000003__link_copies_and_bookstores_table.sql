@@ -1,2 +1,6 @@
 ALTER TABLE `copies`
-ADD store_code char(15) CONSTRAINT c1 NOT NULL
+ADD store_code char(15) CONSTRAINT c1 NOT NULL;
+
+ALTER TABLE `copies` DROP PRIMARY KEY;
+
+ALTER TABLE `copies` ADD CONSTRAINT PK_Copies PRIMARY KEY (id,store_code);
