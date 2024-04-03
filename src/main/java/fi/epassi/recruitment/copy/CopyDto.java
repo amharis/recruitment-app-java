@@ -25,6 +25,9 @@ public class CopyDto {
     @NotBlank
     private String author;
 
+    @NotBlank
+    private String storeCode;
+
     @NotNull
     @DecimalMin(value = "1", message = "Quantity must be more than 0")
     private Long copies;

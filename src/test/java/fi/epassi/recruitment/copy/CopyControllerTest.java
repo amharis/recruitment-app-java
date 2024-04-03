@@ -4,6 +4,9 @@ import fi.epassi.recruitment.BaseIntegrationTest;
 import fi.epassi.recruitment.book.BookDto;
 import fi.epassi.recruitment.book.BookModel;
 import fi.epassi.recruitment.book.BookRepository;
+import fi.epassi.recruitment.bookstore.BookstoreDto;
+import fi.epassi.recruitment.bookstore.BookstoreModel;
+import fi.epassi.recruitment.bookstore.BookstoreRepository;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,20 +40,35 @@ public class CopyControllerTest extends BaseIntegrationTest {
             .price(TEN)
             .build();
 
+    private static final String STORE_CODE_ESPOO_FIN = "ESPOO-FIN";
+    private static final String STORE_CODE_TURKU_FIN = "TURKU-FIN";
+    private static final BookstoreModel BOOKSTORE_ESPOO_FIN = BookstoreModel.builder().storeCode(STORE_CODE_ESPOO_FIN).countryCode("FIN")
+            .address("Espoo, Finland").city("ESPOO").build();
+
+    private static final BookstoreModel BOOKSTORE_TURKU_FIN = BookstoreModel.builder().storeCode(STORE_CODE_TURKU_FIN).countryCode("FIN")
+            .address("Turku, Finland").city("TURKU").build();
+    private static final CopyModel FELLOWSHIP_BOOK_COPIES = CopyModel.builder().isbn(BOOK_FELLOWSHIP.getIsbn()).title(BOOK_FELLOWSHIP.getTitle())
+            .author(BOOK_FELLOWSHIP.getAuthor()).copies(10l).storeCode(STORE_CODE_ESPOO_FIN).build();
+
+    private static final CopyModel HOBBIT_BOOK_COPIES = CopyModel.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
+            .author(BOOK_HOBBIT.getAuthor()).copies(10l).storeCode(STORE_CODE_ESPOO_FIN).build();
+
     @Autowired
     private BookRepository bookRepository;
 
     @Autowired
     private CopyRepository copyRepository;
 
+    @Autowired
+    private BookstoreRepository bookstoreRepository;
+
     @Test
     @SneakyThrows
     void testCreateCopiesRecordForExistingBook() {
         // Setup
         var bookSaved = bookRepository.save(BOOK_HOBBIT);
-        var copyRecordDto = CopyDto.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
-                .author(BOOK_HOBBIT.getAuthor()).copies(10l).build();
-        var copyRecordDtoJson = mapper.writeValueAsString(copyRecordDto);
+        var bookStoreSaved = bookstoreRepository.save(BOOKSTORE_ESPOO_FIN);
+        var copyRecordDtoJson = mapper.writeValueAsString(HOBBIT_BOOK_COPIES);
 
         // When
         var requestUrl = getEndpointUrl(BASE_PATH_V1_COPIES);
@@ -68,9 +86,10 @@ public class CopyControllerTest extends BaseIntegrationTest {
     @SneakyThrows
     void testCreateCopiesRecordForNonExistingBook() {
         // Setup
+        var bookStoreSaved = bookstoreRepository.save(BOOKSTORE_ESPOO_FIN);
         var nonExistentIsbn = UUID.fromString("12345678-ef9c-45d3-ba4a-a792c123208a");
         var copyRecordDto = CopyDto.builder().isbn(nonExistentIsbn).title(BOOK_HOBBIT.getTitle())
-                .author(BOOK_HOBBIT.getAuthor()).copies(10l).build();
+                .author(BOOK_HOBBIT.getAuthor()).copies(10l).storeCode(bookStoreSaved.getStoreCode()).build();
         var copyRecordDtoJson = mapper.writeValueAsString(copyRecordDto);
 
         // When
@@ -86,13 +105,12 @@ public class CopyControllerTest extends BaseIntegrationTest {
 
     @Test
     @SneakyThrows
-    void testGetCopiesByIsbn() {
+    void testGetCopyRecordByIsbn() {
         // Setup
-        var bookSaved = bookRepository.save(BOOK_HOBBIT);
-        var copiesRecord = CopyModel.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
-                .author(BOOK_HOBBIT.getAuthor()).copies(10l).book(bookSaved).build();
-
-        var savedCopiesRecord = copyRepository.save(copiesRecord);
+        var bookSaved1 = bookRepository.save(BOOK_HOBBIT);
+        var bookStoreSaved = bookstoreRepository.save(BOOKSTORE_ESPOO_FIN);
+        HOBBIT_BOOK_COPIES.setBook(bookSaved1);
+        var savedCopiesRecord = copyRepository.save(HOBBIT_BOOK_COPIES);
 
         // When
         var requestUrl = getEndpointUrl(BASE_PATH_V1_COPIES_BY_ISBN);
@@ -108,15 +126,16 @@ public class CopyControllerTest extends BaseIntegrationTest {
     @SneakyThrows
     void testGetCopiesByAuthor() {
         // Setup
+        var bookStoreSaved1 = bookstoreRepository.save(BOOKSTORE_ESPOO_FIN);
+        var bookStoreSaved2 = bookstoreRepository.save(BOOKSTORE_TURKU_FIN);
+
         var bookSaved1 = bookRepository.save(BOOK_HOBBIT);
-        var copiesRecord1 = CopyModel.builder().isbn(BOOK_HOBBIT.getIsbn()).title(BOOK_HOBBIT.getTitle())
-                .author(BOOK_HOBBIT.getAuthor()).copies(10l).book(bookSaved1).build();
-        var savedCopiesRecord1 = copyRepository.save(copiesRecord1);
+        HOBBIT_BOOK_COPIES.setBook(bookSaved1);
+        var savedCopiesRecord1 = copyRepository.save(HOBBIT_BOOK_COPIES);
 
         var bookSaved2 = bookRepository.save(BOOK_FELLOWSHIP);
-        var copiesRecord2 = CopyModel.builder().isbn(BOOK_FELLOWSHIP.getIsbn()).title(BOOK_FELLOWSHIP.getTitle())
-                .author(BOOK_FELLOWSHIP.getAuthor()).copies(20l).book(bookSaved2).build();
-        var savedCopiesRecord2 = copyRepository.save(copiesRecord2);
+        FELLOWSHIP_BOOK_COPIES.setBook(bookSaved2);
+        var savedCopiesRecord2 = copyRepository.save(FELLOWSHIP_BOOK_COPIES);
 
         // When
         var requestUrl = getEndpointUrl(BASE_PATH_V1_COPIES);

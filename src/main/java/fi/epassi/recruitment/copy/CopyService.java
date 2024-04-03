@@ -4,7 +4,10 @@ import fi.epassi.recruitment.book.BookDto;
 import fi.epassi.recruitment.book.BookModel;
 import fi.epassi.recruitment.book.BookRepository;
 import fi.epassi.recruitment.book.BookService;
+import fi.epassi.recruitment.bookstore.BookstoreModel;
+import fi.epassi.recruitment.bookstore.BookstoreRepository;
 import fi.epassi.recruitment.exception.BookNotFoundException;
+import fi.epassi.recruitment.exception.BookstoreNotFoundException;
 import fi.epassi.recruitment.exception.CopyRecordNotFoundException;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +24,13 @@ import java.util.UUID;
 public class CopyService {
     private final CopyRepository copyRepository;
     private final BookRepository bookRepository;
+    private final BookstoreRepository bookstoreRepository;
 
     public UUID createCopy(CopyDto copyDto) {
         CopyModel copyModel = toCopyModel(copyDto);
         // TODO : can we automate linking via JPA ?
-        var existingBook = bookRepository.findByIsbn(copyDto.getIsbn());
-        if (existingBook.isEmpty()) {
-            throw new BookNotFoundException("Invalid isbn for copy record");
-        }
-
-        copyModel.setBook(existingBook.get());
+        linkToBookIfExistsOrThrowException(copyModel);
+        checkBookstoreExists(copyModel);
         var savedCopyRecord = copyRepository.save(copyModel);
         return savedCopyRecord.getIsbn();
     }
@@ -56,12 +56,30 @@ public class CopyService {
 
 
     public UUID updateCopyRecord(CopyDto copyDto) {
-        if (copyRepository.findByIsbn(copyDto.getIsbn()).isPresent()) {
+        var existingCopyRecordOpt = copyRepository.findByIsbn(copyDto.getIsbn());
+        if (existingCopyRecordOpt.isPresent()) {
             var copyModel = toCopyModel(copyDto);
+            copyModel.setBook(existingCopyRecordOpt.get().getBook());
+            checkBookstoreExists(copyModel);
             var savedRecord = copyRepository.save(copyModel);
             return savedRecord.getIsbn();
         }
         throw new CopyRecordNotFoundException(copyDto.getIsbn().toString());
+    }
+
+    private void linkToBookIfExistsOrThrowException(CopyModel copyRecord) {
+        var existingBook = bookRepository.findByIsbn(copyRecord.getIsbn());
+        if (existingBook.isEmpty()) {
+            throw new BookNotFoundException("Invalid isbn for copy record");
+        }
+        copyRecord.setBook(existingBook.get());
+    }
+
+    private void checkBookstoreExists(CopyModel copyRecord) {
+        var existingBook = bookstoreRepository.findByStoreCode(copyRecord.getStoreCode());
+        if (existingBook.isEmpty()) {
+            throw new BookstoreNotFoundException(copyRecord.getStoreCode());
+        }
     }
 
     public static CopyModel toCopyModel(CopyDto copyDto) {
@@ -70,6 +88,7 @@ public class CopyService {
                 .author(copyDto.getAuthor())
                 .title(copyDto.getTitle())
                 .copies(copyDto.getCopies())
+                .storeCode(copyDto.getStoreCode())
                 .build();
     }
 
@@ -78,7 +97,7 @@ public class CopyService {
                 .isbn(copyModel.getIsbn())
                 .author(copyModel.getAuthor())
                 .title(copyModel.getTitle())
-                .copies(copyModel.getCopies())
+                .copies(copyModel.getCopies()).storeCode(copyModel.getStoreCode())
                 .build();
     }
 

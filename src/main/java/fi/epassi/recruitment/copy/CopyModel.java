@@ -32,6 +32,9 @@ public class CopyModel {
     @NotBlank
     private String author;
 
+    @NotBlank
+    private String storeCode;
+
     @NotNull
     @DecimalMin(value = "1", message = "Quantity must be more than 1")
     private Long copies;
