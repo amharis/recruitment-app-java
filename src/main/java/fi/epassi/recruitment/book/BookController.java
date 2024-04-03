@@ -5,6 +5,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import fi.epassi.recruitment.api.ApiResponse;
 import java.util.List;
 import java.util.UUID;
+
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -33,13 +35,12 @@ public class BookController {
         ) {
         return ApiResponse.ok(bookService.getBooks(author, title));
     }
-
     @GetMapping("/paginated")
     ApiResponse<BookApiPaginatedResponse> getBooksWithPagination(
             @RequestParam(value = "author", required = false) String author,
             @RequestParam(value = "title", required = false) String title,
-            @RequestParam(value = "page", required = false, defaultValue = "0") int page,
-            @RequestParam(value = "size", required = false, defaultValue = "3") int size
+            @RequestParam(value = "page", required = false, defaultValue = "0") @Min(0) int page,
+            @RequestParam(value = "size", required = false, defaultValue = "3") @Min(1) int size
     ) {
         return ApiResponse.ok(bookService.getBooksWithPaging(author, title, page, size));
     }
