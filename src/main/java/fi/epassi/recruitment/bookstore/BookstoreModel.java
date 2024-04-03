@@ -19,7 +19,7 @@ import static java.sql.Types.VARCHAR;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
-@Table( name = "bookstore" )
+@Table( name = "bookstores" )
 public class BookstoreModel {
     @NotBlank
     private String address;
