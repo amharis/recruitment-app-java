@@ -1,4 +1,4 @@
-# Epassi Recruitment App
+# BookStore
 
 ## General information
 
